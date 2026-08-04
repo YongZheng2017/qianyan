@@ -1,0 +1,93 @@
+"""
+管理端认证 API
+"""
+from datetime import timedelta
+from fastapi import APIRouter, HTTPException, status, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from ....database import get_db
+from ....schemas.auth import LoginRequest, LoginResponse
+from ....schemas.user import UserResponse
+from ....schemas.common import Response
+from ....models import User
+from ....utils.security import create_access_token
+from ....services.auth import authenticate_user, get_user_permissions, update_last_login
+from ....core.config import settings
+
+router = APIRouter()
+
+
+@router.post("/login", response_model=Response[LoginResponse])
+async def admin_login(
+    request: LoginRequest,
+    db: AsyncSession = Depends(get_db)
+):
+    """
+    管理端登录
+
+    Args:
+        request: 登录请求
+        db: 数据库会话
+
+    Returns:
+        Response[LoginResponse]: 登录响应，包含 token 和权限列表
+    """
+    # 认证用户
+    user = await authenticate_user(db, request.username, request.password)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="用户名或密码错误"
+        )
+
+    # 获取用户权限
+    permissions = await get_user_permissions(db, user.id)
+
+    # 检查是否有管理权限
+    from ....services.auth import has_admin_permission
+    if not await has_admin_permission(permissions):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="无管理权限"
+        )
+
+    # 生成 token
+    token = create_access_token(
+        data={"sub": str(user.id), "username": user.username, "type": "admin"},
+        expires_delta=timedelta(hours=settings.ADMIN_TOKEN_EXPIRE_HOURS)
+    )
+
+    # 更新最后登录时间
+    await update_last_login(db, user.id)
+
+    # 构建响应
+    user_response = UserResponse(
+        id=user.id,
+        username=user.username,
+        real_name=user.real_name,
+        email=user.email,
+        role_ids=[role.id for role in user.roles],
+        status=user.status,
+        created_at=user.created_at,
+        last_login_at=user.last_login_at
+    )
+
+    return Response(
+        data=LoginResponse(
+            token=token,
+            user=user_response,
+            permissions=permissions
+        )
+    )
+
+
+@router.post("/logout", response_model=Response)
+async def admin_logout():
+    """
+    管理端退出登录
+
+    Returns:
+        Response: 成功响应
+    """
+    # JWT 是无状态的，客户端删除 token 即可
+    return Response(message="退出成功")
