@@ -27,7 +27,7 @@
 
         <div class="collapse-btn" @click="toggleCollapse">
           <el-icon>
-            <component :is="collapsed ? 'Expand' : 'Fold'" />
+            <component :is="collapsed ? Expand : Fold" />
           </el-icon>
         </div>
       </el-aside>
@@ -82,8 +82,13 @@
 import { ref, computed, onMounted } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
-import { UserFilled, ArrowDown, SwitchButton } from '@element-plus/icons-vue'
+import {
+  UserFilled, ArrowDown, SwitchButton,
+  TrendCharts, DataLine, Money, Document,
+  Expand, Fold
+} from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
+import { getUserMenus } from '../api/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -97,15 +102,15 @@ const currentMenu = computed(() => {
   return userStore.menus.find(m => m.path === route.path)
 })
 
-const getIcon = (iconName) => {
-  const icons = {
-    stock: 'TrendCharts',
-    chart: 'DataLine',
-    trend: 'TrendCharts',
-    fund: 'Money'
-  }
-  return icons[iconName] || 'Document'
+// 菜单图标映射（返回已导入的组件，而非字符串名）
+const ICON_MAP = {
+  stock: TrendCharts,
+  chart: DataLine,
+  trend: TrendCharts,
+  fund: Money,
+  document: Document
 }
+const getIcon = (iconName) => ICON_MAP[iconName] || Document
 
 const toggleCollapse = () => {
   collapsed.value = !collapsed.value
@@ -127,10 +132,20 @@ const handleCommand = async (command) => {
   }
 }
 
-onMounted(() => {
-  // 如果没有菜单，跳转到登录页
-  if (userStore.menus.length === 0) {
+onMounted(async () => {
+  // 未登录跳转登录页
+  if (!userStore.token) {
     router.push('/login')
+    return
+  }
+  // 每次进入刷新菜单（覆盖 localStorage 旧缓存，避免菜单变更后路由不匹配）
+  try {
+    const res = await getUserMenus()
+    if (res.data && res.data.length > 0) {
+      userStore.setMenus(res.data)
+    }
+  } catch {
+    // 静默失败，继续使用本地缓存的菜单
   }
 })
 </script>
@@ -217,6 +232,24 @@ onMounted(() => {
 
 .main {
   background-color: #f0f2f5;
+}
+
+/* 让所有 el-container 撑满父级高度，避免下半部分露灰 */
+.dashboard :deep(.el-container) {
+  height: 100%;
+}
+
+/* 内容区撑满剩余高度，超出可滚动 */
+.dashboard :deep(.el-main) {
+  flex: 1;
+  overflow: auto;
+  padding: 16px;
+}
+
+/* 页面卡片撑满内容区高度 */
+.dashboard :deep(.el-main > *) {
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 /* 欢迎页面 */

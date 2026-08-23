@@ -7,6 +7,7 @@ starlette==0.41.3
 sqlalchemy==2.0.35
 aiomysql==0.2.0
 pymysql==1.1.1
+greenlet==3.1.1
 
 # 数据验证
 pydantic==2.9.2
@@ -17,6 +18,14 @@ python-jose[cryptography]==3.3.0
 passlib==1.7.4
 bcrypt==4.2.1
 PyJWT==2.10.1
+cryptography==43.0.1
+httpx==0.27.2
+
+# 调度与异步任务
+APScheduler==3.10.4
+
+# AKShare 数据源（开源财经数据库）
+akshare>=1.12.0
 
 # 配置管理
 python-dotenv==1.0.1

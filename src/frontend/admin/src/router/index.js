@@ -23,6 +23,24 @@ const routes = [
         name: 'UserManage',
         component: () => import('../views/UserManage.vue'),
         meta: { title: '用户管理' }
+      },
+      {
+        path: 'data-sources',
+        name: 'DataSourceManage',
+        component: () => import('../views/DataSourceManage.vue'),
+        meta: { title: '数据源管理' }
+      },
+      {
+        path: 'sync-tasks',
+        name: 'SyncTaskManage',
+        component: () => import('../views/SyncTaskManage.vue'),
+        meta: { title: '同步任务管理' }
+      },
+      {
+        path: 'sync-logs',
+        name: 'SyncLogManage',
+        component: () => import('../views/SyncLogManage.vue'),
+        meta: { title: '同步日志' }
       }
     ]
   }

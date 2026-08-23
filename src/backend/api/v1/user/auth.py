@@ -108,31 +108,24 @@ def generate_user_menus(permissions: list) -> list:
     # 硬编码菜单配置
     MENU_CONFIG = [
         {
-            "id": "stock_quote",
-            "title": "关注的股票",
-            "icon": "stock",
-            "path": "/stock/quote",
+            "id": "market",
+            "title": "行情",
+            "icon": "trend",
+            "path": "/market",
             "permission": "stock:quote:read"
         },
         {
             "id": "fundamental",
             "title": "基本面分析",
             "icon": "chart",
-            "path": "/analysis/fundamental",
+            "path": "/fundamental",
             "permission": "analysis:fundamental:read"
         },
         {
-            "id": "trend",
-            "title": "趋势分析",
-            "icon": "trend",
-            "path": "/analysis/trend",
-            "permission": "analysis:trend:read"
-        },
-        {
             "id": "fund_flow",
-            "title": "资金趋势",
+            "title": "资金趋势分析",
             "icon": "fund",
-            "path": "/analysis/fund-flow",
+            "path": "/fund-flow",
             "permission": "analysis:fund:read"
         }
     ]

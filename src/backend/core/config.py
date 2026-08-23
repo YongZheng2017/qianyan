@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     # CORS配置
     ALLOWED_ORIGINS: str = "http://localhost:3000"
 
+    # 数据源 Token 加密密钥（Fernet，32字节base64编码字符串）
+    # 生产环境务必修改，可用 Fernet.generate_key() 生成
+    ENC_KEY: str = ""
+
     @property
     def allowed_origins_list(self) -> List[str]:
         """将逗号分隔的CORS域名转换为列表"""

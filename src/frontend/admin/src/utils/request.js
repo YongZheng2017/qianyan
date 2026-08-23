@@ -37,18 +37,19 @@ request.interceptors.response.use(
   (error) => {
     if (error.response) {
       const status = error.response.status
+      const data = error.response.data
+      // 兼容两种错误格式：FastAPI HTTPException 用 detail，业务 Response 用 message
+      const msg = data?.detail || data?.message
 
       if (status === 401) {
         const userStore = useUserStore()
         userStore.logout()
-        router.push('/login')
-        ElMessage.error('登录已过期，请重新登录')
-      } else if (status === 403) {
-        ElMessage.error('没有权限访问')
-      } else if (status === 404) {
-        ElMessage.error('请求的资源不存在')
+        // 静默跳转登录页（401 通常是 token 失效，跳登录即可，不弹刺眼错误）
+        if (router.currentRoute.value.path !== '/login') {
+          router.push('/login')
+        }
       } else {
-        ElMessage.error(error.response.data?.message || '请求失败')
+        ElMessage.error(msg || `请求失败（${status}）`)
       }
     } else {
       ElMessage.error('网络错误，请稍后重试')

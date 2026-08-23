@@ -11,7 +11,8 @@ from sqlalchemy import text
 from .core.config import settings
 from .database import init_db, async_session_maker
 from .services.init import init_system
-from .api.v1 import admin, user
+from .services.sync_scheduler import scheduler
+from .api.v1 import admin, user, analysis
 from .schemas.common import Response
 
 
@@ -34,9 +35,14 @@ async def lifespan(app: FastAPI):
         await init_system(db)
     print("[OK] 系统初始化完成")
 
+    # 启动同步调度器
+    await scheduler.start()
+    print("[OK] 同步调度器已启动")
+
     yield
 
     # 关闭时执行
+    await scheduler.shutdown()
     print("应用关闭")
 
 
@@ -62,6 +68,7 @@ app.add_middleware(
 # 注册路由
 app.include_router(admin.router, prefix="/api/v1")
 app.include_router(user.router, prefix="/api/v1")
+app.include_router(analysis.router, prefix="/api/v1")
 
 
 # 健康检查端点

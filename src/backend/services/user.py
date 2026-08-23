@@ -163,9 +163,9 @@ class UserService:
         )
         db.add(user)
         await db.commit()
-        await db.refresh(user)
 
-        return user
+        # 重新查询用户，预加载 roles 关系（避免异步懒加载问题）
+        return await UserService.get_user_by_id(db, user.id)
 
     @staticmethod
     async def update_user(db: AsyncSession, user_id: int, user_data: UserUpdate) -> User:
@@ -209,9 +209,9 @@ class UserService:
         user.roles = roles  # 直接设置角色
 
         await db.commit()
-        await db.refresh(user)
 
-        return user
+        # 重新查询用户，预加载 roles 关系（避免异步懒加载问题）
+        return await UserService.get_user_by_id(db, user.id)
 
     @staticmethod
     async def change_password(db: AsyncSession, user_id: int, password_data: ChangePassword) -> None:

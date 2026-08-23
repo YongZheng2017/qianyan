@@ -1,0 +1,9 @@
+{
+  "interval_ms": 1000,
+  "timeout_seconds": 60,
+  "retry_count": 5,
+  "description": "更新后的日线同步任务",
+  "params": [
+    {"param_key": "trade_date", "param_value": "20260808"}
+  ]
+}

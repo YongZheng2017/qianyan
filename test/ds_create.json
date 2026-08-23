@@ -1,0 +1,8 @@
+{
+  "name": "Tushare主数据源",
+  "source_type": "tushare",
+  "api_url": "http://api.tushare.pro",
+  "token": "test-invalid-token-for-verification",
+  "description": "Tushare Pro 接口（测试）",
+  "status": 1
+}

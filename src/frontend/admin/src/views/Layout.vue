@@ -15,6 +15,24 @@
             <el-icon><User /></el-icon>
             <span>用户管理</span>
           </el-menu-item>
+          <el-sub-menu index="sync">
+            <template #title>
+              <el-icon><DataLine /></el-icon>
+              <span>数据同步</span>
+            </template>
+            <el-menu-item index="/data-sources">
+              <el-icon><Connection /></el-icon>
+              <span>数据源管理</span>
+            </el-menu-item>
+            <el-menu-item index="/sync-tasks">
+              <el-icon><Refresh /></el-icon>
+              <span>同步任务</span>
+            </el-menu-item>
+            <el-menu-item index="/sync-logs">
+              <el-icon><Document /></el-icon>
+              <span>同步日志</span>
+            </el-menu-item>
+          </el-sub-menu>
         </el-menu>
       </el-aside>
 
@@ -54,6 +72,7 @@ import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessageBox } from 'element-plus'
 import { UserFilled } from '@element-plus/icons-vue'
+import { User, DataLine, Connection, Refresh, Document } from '@element-plus/icons-vue'
 import { useUserStore } from '../store/user'
 
 const route = useRoute()
@@ -83,6 +102,23 @@ const handleCommand = (command) => {
 .layout {
   width: 100%;
   height: 100vh;
+}
+
+/* 让所有 el-container 撑满父级高度，避免下半部分露灰 */
+.layout :deep(.el-container) {
+  height: 100%;
+}
+
+/* 内容区撑满剩余高度，超出可滚动 */
+.layout :deep(.el-main) {
+  flex: 1;
+  overflow: auto;
+}
+
+/* 页面卡片撑满内容区高度（四周保留 main 的 padding 留白） */
+.layout :deep(.el-main > *) {
+  min-height: 100%;
+  box-sizing: border-box;
 }
 
 .sidebar {
@@ -115,6 +151,31 @@ const handleCommand = (command) => {
 
 .menu .el-menu-item:hover,
 .menu .el-menu-item.is-active {
+  background-color: #263445;
+  color: #409eff;
+}
+
+/* 子菜单标题样式（与菜单项保持一致的浅色） */
+.menu :deep(.el-sub-menu__title) {
+  color: #bfcbd9;
+}
+
+.menu :deep(.el-sub-menu__title:hover) {
+  background-color: #263445;
+  color: #409eff;
+}
+
+/* 展开的子菜单区域用更深的背景，区分层级 */
+.menu :deep(.el-sub-menu .el-menu) {
+  background-color: #1f2d3d;
+}
+
+.menu :deep(.el-sub-menu .el-menu .el-menu-item) {
+  color: #bfcbd9;
+}
+
+.menu :deep(.el-sub-menu .el-menu .el-menu-item:hover),
+.menu :deep(.el-sub-menu .el-menu .el-menu-item.is-active) {
   background-color: #263445;
   color: #409eff;
 }

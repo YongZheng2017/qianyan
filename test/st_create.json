@@ -1,0 +1,15 @@
+{
+  "name": "同步日线行情",
+  "source_id": 1,
+  "data_interface": "daily",
+  "sync_mode": "incremental",
+  "target_table": "daily_quotes",
+  "params": [
+    {"param_key": "start_date", "param_value": "20260101"},
+    {"param_key": "end_date", "param_value": "20260808"}
+  ],
+  "interval_ms": 500,
+  "timeout_seconds": 30,
+  "retry_count": 3,
+  "status": 1
+}
