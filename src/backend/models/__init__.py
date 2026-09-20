@@ -16,6 +16,7 @@ from .macro import (
     MacroLpr, MacroShibor, MacroGdp, MacroCpi, MacroPpi, MacroPmi, MacroM,
     MacroUsTycr, MacroUsTbr, MacroUsTlr,
 )
+from .ths import ThsValuationSnapshot, ThsIndex, ThsIndexConstituent, ThsIndexQuote
 
 __all__ = [
     "Base", "TimestampMixin",
@@ -30,4 +31,5 @@ __all__ = [
     "BoardIndustry", "BoardIndustryQuote",
     "MacroLpr", "MacroShibor", "MacroGdp", "MacroCpi", "MacroPpi", "MacroPmi", "MacroM",
     "MacroUsTycr", "MacroUsTbr", "MacroUsTlr",
+    "ThsValuationSnapshot", "ThsIndex", "ThsIndexConstituent", "ThsIndexQuote",
 ]

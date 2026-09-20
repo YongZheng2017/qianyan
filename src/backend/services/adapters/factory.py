@@ -6,6 +6,7 @@
 from .base import DataSourceAdapter
 from .tushare import TushareAdapter
 from .akshare import AKShareAdapter
+from .ths import ThsAdapter
 
 
 class DataSourceAdapterFactory:
@@ -14,6 +15,7 @@ class DataSourceAdapterFactory:
     _adapters = {
         "tushare": TushareAdapter,
         "akshare": AKShareAdapter,
+        "ths": ThsAdapter,
     }
 
     @classmethod

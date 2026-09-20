@@ -30,6 +30,7 @@ from ..models import (
     BoardIndustry, BoardIndustryQuote,
     MacroLpr, MacroShibor, MacroGdp, MacroCpi, MacroPpi, MacroPmi, MacroM,
     MacroUsTycr, MacroUsTbr, MacroUsTlr,
+    ThsValuationSnapshot, ThsIndex, ThsIndexConstituent, ThsIndexQuote,
 )
 from ..database import async_session_maker
 from .adapters import DataSourceAdapterFactory
@@ -68,6 +69,11 @@ TARGET_MODEL_MAP = {
     "macro_us_tycr": MacroUsTycr,
     "macro_us_tbr": MacroUsTbr,
     "macro_us_tlr": MacroUsTlr,
+    # 同花顺（DS-009）
+    "ths_valuation_snapshot": ThsValuationSnapshot,
+    "ths_index": ThsIndex,
+    "ths_index_constituent": ThsIndexConstituent,
+    "ths_index_quotes": ThsIndexQuote,
 }
 
 # 运行中的后台任务强引用集合（防止 asyncio.create_task 返回的 Task 被 GC 回收导致静默取消）

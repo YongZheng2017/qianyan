@@ -6,6 +6,7 @@
 from .base import DataSourceAdapter
 from .tushare import TushareAdapter
 from .akshare import AKShareAdapter
+from .ths import ThsAdapter
 from .factory import DataSourceAdapterFactory
 
-__all__ = ["DataSourceAdapter", "TushareAdapter", "AKShareAdapter", "DataSourceAdapterFactory"]
+__all__ = ["DataSourceAdapter", "TushareAdapter", "AKShareAdapter", "ThsAdapter", "DataSourceAdapterFactory"]

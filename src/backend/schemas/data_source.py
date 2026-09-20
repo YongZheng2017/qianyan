@@ -11,7 +11,7 @@ from pydantic import BaseModel, Field
 class DataSourceBase(BaseModel):
     """数据源基础模型"""
     name: str = Field(..., min_length=2, max_length=50, description='数据源名称')
-    source_type: str = Field(..., pattern='^(tushare|akshare|custom)$', description='类型:tushare,akshare,custom')
+    source_type: str = Field(..., pattern='^(tushare|akshare|ths|custom)$', description='类型:tushare,akshare,ths,custom')
     api_url: str = Field(..., max_length=255, description='API地址')
     # 凭证（按数据源类型区分字段，如 Tushare 的 {"token": "xxx"}，明文仅写入时使用）
     credentials: Optional[Dict[str, Any]] = Field(None, description='凭证（明文，仅写入时使用）')
@@ -27,7 +27,7 @@ class DataSourceCreate(DataSourceBase):
 class DataSourceUpdate(BaseModel):
     """更新数据源请求模型"""
     name: Optional[str] = Field(None, min_length=2, max_length=50, description='数据源名称')
-    source_type: Optional[str] = Field(None, pattern='^(tushare|akshare|custom)$', description='类型')
+    source_type: Optional[str] = Field(None, pattern='^(tushare|akshare|ths|custom)$', description='类型')
     api_url: Optional[str] = Field(None, max_length=255, description='API地址')
     credentials: Optional[Dict[str, Any]] = Field(None, description='凭证（None不修改，空dict清空）')
     description: Optional[str] = Field(None, max_length=200, description='描述')
