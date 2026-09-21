@@ -31,6 +31,30 @@ def _ms_to_date(ms) -> Optional[str]:
         return None
 
 
+def _date_to_ms(date_str) -> Optional[int]:
+    """yyyyMMdd → 毫秒 Unix 时间戳（Asia/Shanghai 当日 00:00）"""
+    if date_str in (None, ""):
+        return None
+    try:
+        from zoneinfo import ZoneInfo
+        s = str(date_str).replace("-", "").strip()
+        dt = datetime.strptime(s, "%Y%m%d").replace(tzinfo=ZoneInfo("Asia/Shanghai"))
+        return int(dt.timestamp() * 1000)
+    except Exception:
+        return None
+
+
+# 参数值转换器（同步任务参数值 → THS query 参数值）
+_PARAM_TRANSFORMS = {
+    "date_to_ms": _date_to_ms,       # yyyyMMdd → 毫秒
+}
+
+# 字段值转换器（应用于 alias 重命名后的列）
+_FIELD_TRANSFORMS = {
+    "div100": lambda v: (v / 100) if isinstance(v, (int, float)) else v,  # 股→手
+}
+
+
 def _rename_ms_date(rec: Dict[str, Any], date_keys: List[str], out_key: str):
     """将记录中第一个存在且非空的毫秒时间戳字段转为日期，写入 out_key"""
     for k in date_keys:
@@ -53,10 +77,15 @@ THS_INTERFACE_META: Dict[str, dict] = {
         "label": "历史K线(日K)", "target_table": "daily_quotes",
         "endpoint": "/api/a-share/prices/historical",
         "default_interval_ms": 600, "min_points": None,
-        "param_map": {"ts_code": "thscode", "start_date": "start", "end_date": "end"},
-        "date_fields": ["time", "timestamp"],
+        "param_map": {"ts_code": "thscode", "start_date": "start", "end_date": "end", "adjust": "adjust"},
+        "param_transform": {"start": "date_to_ms", "end": "date_to_ms"},
+        "default_params": {"interval": "1d"},
+        "date_fields": ["date_ms"],
         "stock_code_field": "thscode",
-        "field_alias": {},  # open/high/low/close/vol/amount 与 daily_quotes 一致，pct_chg 同名
+        "stock_code_alias": "ts_code",
+        "field_alias": {"open_price": "open", "high_price": "high", "low_price": "low",
+                        "close_price": "close", "volume": "vol", "turnover": "amount"},
+        "field_transform": {"vol": "div100"},  # 股→手，与Tushare同表一致
         "records_key": "item",
     },
     "valuation_snapshot": {
@@ -107,9 +136,13 @@ THS_INTERFACE_META: Dict[str, dict] = {
         "endpoint": "/api/a-share-index/prices/historical",
         "default_interval_ms": 600, "min_points": None,
         "param_map": {"ts_code": "thscode", "start_date": "start", "end_date": "end"},
-        "date_fields": ["time", "timestamp"],
+        "param_transform": {"start": "date_to_ms", "end": "date_to_ms"},
+        "default_params": {"interval": "1d"},
+        "date_fields": ["date_ms"],
         "stock_code_field": "thscode",
-        "field_alias": {},
+        "field_alias": {"open_price": "open", "high_price": "high", "low_price": "low",
+                        "close_price": "close", "volume": "vol", "turnover": "amount"},
+        "field_transform": {"vol": "div100"},  # 股→手
         "records_key": "item",
     },
 }
@@ -181,13 +214,21 @@ class ThsAdapter(DataSourceAdapter):
         if not api_key:
             return {"code": 2001, "msg": "未配置 API Key", "records": [], "fatal": True}
 
-        # 同步任务参数 → THS query 参数
+        # 同步任务参数 → THS query 参数（含参数值转换 + 自动附加默认参数）
         param_map = meta.get("param_map") or {}
+        param_transform = meta.get("param_transform") or {}
         query: Dict[str, Any] = {}
         for task_key, ths_key in param_map.items():
             v = (params or {}).get(task_key)
+            if v in (None, ""):
+                continue
+            ths_key = ths_key or task_key
+            tfn = param_transform.get(ths_key)
+            if tfn and tfn in _PARAM_TRANSFORMS:
+                v = _PARAM_TRANSFORMS[tfn](v)
             if v not in (None, ""):
-                query[ths_key or task_key] = v
+                query[ths_key] = v
+        query.update(meta.get("default_params") or {})
 
         try:
             body = await self._get(api_url, meta["endpoint"], api_key, query, timeout)
@@ -208,6 +249,7 @@ class ThsAdapter(DataSourceAdapter):
         date_fields = meta.get("date_fields") or []
         date_out = meta.get("date_out_key", "trade_date")
         alias = meta.get("field_alias") or {}
+        transforms = meta.get("field_transform") or {}
         code_field = meta.get("stock_code_field")
         code_alias = meta.get("stock_code_alias")
 
@@ -222,6 +264,10 @@ class ThsAdapter(DataSourceAdapter):
             for old, new in alias.items():
                 if old in rec and new != old:
                     rec[new] = rec.pop(old)
+            # 字段值转换（应用于 alias 后的列名，如 volume÷100 → vol）
+            for col, tfn in transforms.items():
+                if col in rec and rec[col] is not None and tfn in _FIELD_TRANSFORMS:
+                    rec[col] = _FIELD_TRANSFORMS[tfn](rec[col])
             records.append(rec)
 
         return {"code": 0, "msg": None, "records": records, "fatal": False}
@@ -240,9 +286,12 @@ class ThsAdapter(DataSourceAdapter):
         defs = {
             "ts_code": {"key": "ts_code", "name": "标的代码", "type": "text", "required": True,
                         "hint": "如 600519.SH / 90.BK1027(指数)"},
-            "start_date": {"key": "start_date", "name": "开始日期", "type": "date", "required": False},
-            "end_date": {"key": "end_date", "name": "结束日期", "type": "date", "required": False},
+            "start_date": {"key": "start_date", "name": "开始日期", "type": "date", "required": True},
+            "end_date": {"key": "end_date", "name": "结束日期", "type": "date", "required": True,
+                         "hint": "窗口≤10年"},
             "period": {"key": "period", "name": "报告期", "type": "date", "required": False, "hint": "如20251231"},
+            "adjust": {"key": "adjust", "name": "复权方式", "type": "select", "required": False,
+                       "options": [("forward", "前复权(默认)"), ("none", "不复权"), ("backward", "后复权")]},
             "tag": {"key": "tag", "name": "指数分类", "type": "select", "required": False,
                     "options": [("", "全部"), ("行业", "行业"), ("概念", "概念")]},
         }

@@ -108,12 +108,53 @@ CREATE TABLE ths_index_constituent (
 );
 ```
 
+## 历史K线接口精确契约（依据官方 prices 文档核定）
+
+### 请求（`GET /api/a-share/prices/historical`）
+
+| THS 参数 | 类型 | 必需 | 说明 | 同步任务参数（用户填写）|
+|----------|------|------|------|--------------------------|
+| `thscode` | string | **是** | **单只**，不接受逗号 | `ts_code`（如 600519.SH）|
+| `interval` | string | **是** | 当前仅支持 `1d` | 自动附加（适配器固定传 `1d`）|
+| `start` | long | **是** | **毫秒时间戳**；缺失报 1001 | `start_date`（yyyyMMdd，**适配器转换为毫秒**）|
+| `end` | long | **是** | 毫秒时间戳；窗口>10年报 1003 | `end_date`（同上转换）|
+| `adjust` | string | 否 | `none`/`forward`(默认)/`backward` | `adjust`（下拉选）|
+
+> ⚠️ 与 Tushare daily 的关键差异：THS 的 start/end 是**毫秒时间戳**而非 yyyyMMdd 字符串，适配器需做参数值转换。
+
+### 响应字段（PriceBarItem → daily_quotes 列映射）
+
+| THS 字段 | 类型 | 映射到 daily_quotes | 说明 |
+|----------|------|---------------------|------|
+| `date_ms` | long | `trade_date` | 毫秒→yyyyMMdd（Asia/Shanghai）|
+| `open_price` | number | `open` | |
+| `high_price` | number | `high` | |
+| `low_price` | number | `low` | |
+| `close_price` | number | `close` | |
+| `volume` | number | `vol` | **单位：股；daily_quotes.vol 为手 → 需 ÷100** |
+| `turnover` | number | `amount` | 元；Tushare amount 为千元 → **保持 THS 原始值（元）入库差异记录在案，避免错误换算** ⚠️ |
+| （标的）| `thscode` | `ts_code` | 格式一致，直接对齐 |
+
+> **单位决策**：vol（股→手）做 ÷100 转换以保证与 Tushare 同表一致；amount 单位两源不一致（THS 元 / Tushare 千元），**Phase 1 不做转换**，ths 来源记录的 amount 为"元"，需使用方注意（后续可加 `data_source` 溯源列再统一）。
+
+### 适配器需新增的三个通用能力
+
+1. **param_transform**（参数值转换）：`yyyyMMdd → 毫秒时间戳`（start/end）
+2. **default_params**（自动附加固定参数）：`interval=1d`
+3. **field_transform**（字段值转换）：`volume ÷ 100 → vol`
+
+### 指数历史K线（/api/a-share-index/prices/historical）
+
+响应同为 `PriceBarItem` 结构（date_ms/_price/volume/turnover），应用**相同映射**至 `ths_index_quotes`（该表 amount 注释为元，与 THS 一致，无歧义；vol 表注释为手，同样 ÷100）。
+
 ## 验收标准
 
 - [ ] 管理端可选「同花顺」数据源类型，凭证区显示 API Key 输入框
 - [ ] 测试连接：用轻量接口（交易日历/标的检索）验证 Key
 - [ ] Phase 1 六个接口可建任务同步：日K入 daily_quotes、财务指标入 fin_indicator、估值/指数入新表
-- [ ] 毫秒时间戳正确转换为 yyyyMMdd
+- [ ] 毫秒时间戳正确转换为 yyyyMMdd；start/end 参数正确转换为毫秒时间戳
+- [ ] 历史K线字段映射生效（open_price→open 等 6 项）
+- [ ] volume 股→手 ÷100 转换生效，与 Tushare 同表数据单位一致
 - [ ] 4001 QPS 超限自动退避重试；2001/2003 明确报错不重试
 - [ ] 与 Tushare 同表数据可交叉（同 thscode/ts_code UPSERT 更新）
 
